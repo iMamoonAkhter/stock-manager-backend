@@ -224,75 +224,75 @@ router.delete("/:id/:ID", async function(req, res){
 router.put("/forgetPassword", async (req, res) => {
   try {
     const { email } = req.body;
-    var Users = await user.findOne({ email: email });
-    if (!Users)
-      return res
-        .status(400)
-        .json({ message: "User with Given Id does not exists" });
-    var generator = new CodeGenerator();
-    var pattern = "######";
-    var howMany = 1;
-    // Generate an array of random unique codes according to the provided pattern:
-    var codes = generator.generateCodes(pattern, howMany, { expiresIn: "50m" });
-    const data = {
-      from: "noreply@hello.com",
-      to: email,
-      subject: "Password reset",
-      html: `
-        <h2>Your code for password reset is</h2>
-        <p>${codes}</p>
-      `,
+
+    // Check if user exists
+    const Users = await user.findOne({ email });
+    if (!Users) {
+      return res.status(400).json({ message: "User with given email does not exist" });
+    }
+
+    // Generate a 6-digit OTP
+    const OTP = Math.floor(100000 + Math.random() * 900000).toString();
+    const expirationTime = Date.now() + 10 * 60 * 1000; // OTP expires in 10 minutes
+
+    // Store OTP temporarily
+    otpData[OTP] = {
+      expirationTime,
+      email,
     };
 
-    return Users.updateOne({ resetLink: codes }, function (err, success) {
-      if (err) {
-        return res.status(400).json({ message: "Incorrect or expired link" });
-      } else {
-        mg.messages().send(data, function (error, body) {
-          if (error) {
-            return res.json({
-              error: error.message,
-            });
-          }
-          return res.json({
-            message: "A password reset code has been sent. Kindly check your email",
-            codes,
-          });
-        });
-      }
+    // Update user's resetLink with OTP
+    Users.resetLink = OTP;
+    await Users.save();
+
+    // Send OTP via email
+    await sendEmailOTP(email, OTP);
+
+    return res.json({
+      message: "A password reset code has been sent. Kindly check your email.",
+      OTP,
     });
   } catch (err) {
     console.error("Error in /forgetPassword route:", err);
-    return res.status(400).json({ message: "Unsuccessful attempt" });
+    return res.status(400).json({ message: "Something went wrong. Please try again." });
   }
 });
 
 // Reset Password //
 router.put("/resetPassword", async (req, res) => {
   try {
-    const { resetLink, newPass } = req.body;
+    const { OTP, newPass } = req.body;
 
-    var Users = await user.findOne({ resetLink });
-    if (!Users)
-      return res.status(400).json({ message: "Incorrect or expired code" });
-    const obj = {
-      password: newPass,
-    };
-    console.log(obj);
-    Users = _.extend(Users, obj);
+    // Check if OTP data exists
+    if (!otpData[OTP]) {
+      return res.status(400).json({ message: "Invalid OTP or OTP not sent yet" });
+    }
+
+    const { expirationTime, email } = otpData[OTP];
+
+    // Check if OTP is expired
+    if (Date.now() > expirationTime) {
+      return res.status(400).json({ message: "OTP has expired" });
+    }
+
+    // Find user by email
+    const Users = await user.findOne({ email });
+    if (!Users) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    // Update password
+    Users.password = newPass;
     await Users.generateHashedPassword();
-    await Users.save((err, result) => {
-      if (err) {
-        return res.status(400).json({ message: "Password reset error" });
-      } else {
-        return res
-          .status(200)
-          .json({ message: "Password has been changed successfully" });
-      }
-    });
+    await Users.save();
+
+    // Clear temporary OTP data
+    delete otpData[OTP];
+
+    return res.json({ message: "Password has been changed successfully" });
   } catch (err) {
     console.error("Error in /resetPassword route:", err);
-    return res.status(500).json({ message: "Something Went Wrong Please Try Again" });
+    return res.status(400).json({ message: "Something went wrong. Please try again." });
   }
 });
 
