@@ -7,14 +7,10 @@ let { user } = require("../../models/users");
 var jwt = require("jsonwebtoken");
 var auth = require("../../middlewares/auth");
 const validateusers = require("../../middlewares/validateUser");
-const mailgun = require("mailgun-js");
 const CodeGenerator = require("node-code-generator");
 const nodemailer = require('nodemailer');
 
-const mg = mailgun({
-  apiKey: config.get("MAILGUN_APIKEY"),
-  domain: config.get("Domain"),
-});
+
 
 /* Get All Users */
 router.get("/", async function (req, res) {
