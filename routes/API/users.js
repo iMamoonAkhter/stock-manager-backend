@@ -42,7 +42,7 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid User or Password" });
     let token = jwt.sign(
       { _id: users._id, email: users.email, role: users.role },
-      config.get("jwtPrivateKey")
+      process.env.jwtPrivateKey
     );
 
     return res.json({ message: "Login Successful", token, users });
