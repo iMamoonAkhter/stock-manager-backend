@@ -241,7 +241,7 @@ router.put("/forgetPassword", async (req, res) => {
       email,
     };
 
-    // Update user's resetLink with OTP
+    // Update user's resetLink with OTP (as a string)
     Users.resetLink = OTP;
     await Users.save();
 

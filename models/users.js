@@ -2,6 +2,7 @@ var mongoose = require("mongoose");
 const joi = require("@hapi/joi");
 var bcrypt = require("bcryptjs");
 const { boolean } = require("@hapi/joi");
+
 var userSchema = mongoose.Schema({
   firstname: String,
   lastname: String,
@@ -33,7 +34,6 @@ var userSchema = mongoose.Schema({
     type: String,
     required: true,
   },
-
   role: {
     type: String,
     default: "user",
@@ -43,7 +43,7 @@ var userSchema = mongoose.Schema({
     default: true,
   },
   resetLink: {
-    data: String,
+    type: String, // Change this to String
     default: "",
   },
 });
@@ -65,7 +65,6 @@ function validateUser(data) {
     province: joi.required(),
     city: joi.required(),
     zipcode: joi.required(),
-
     confirmpassword: joi.string().min(2).max(10).required(),
     contact: joi
       .string()
