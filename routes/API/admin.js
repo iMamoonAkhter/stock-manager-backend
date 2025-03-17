@@ -2,7 +2,6 @@ const express = require("express");
 let router = express.Router();
 var bcrypt = require("bcryptjs");
 const _ = require("lodash");
-const config = require("config");
 let { admin } = require("../../models/admin");
 var jwt = require("jsonwebtoken");
 var auth = require("../../middlewares/auth");
@@ -55,7 +54,7 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid Admin or Password" });
     let token = jwt.sign(
       { _id: admins._id, email: admins.email, role: admins.role },
-      config.get("jwtPrivateKey")
+      process.env.JWT_PRIVATE_KEY
     );
 
     return res.json({ message: "Login Successfull", token, admins });
