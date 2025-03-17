@@ -39,9 +39,13 @@ var upload = multer({
 
 /* Get All Products */
 router.get("/", async function (req, res) {
-  let products = await product.find().populate("category");
-
-  return res.send(products);
+  try {
+    let products = await product.find().populate("category");
+    return res.send(products);
+  } catch (error) {
+    console.error("Error in / route:", error);
+    return res.status(500).send("Internal Server Error");
+  }
 });
 
 /* Get Single Product */
@@ -57,6 +61,7 @@ router.get("/:id", async function (req, res) {
   }
 });
 
+/* Get Products by Tenant */
 router.get("/tenant/:id", async function (req, res) {
   try {
     let Product = await product.find({ Tenant_id: req.params.id });
@@ -69,7 +74,7 @@ router.get("/tenant/:id", async function (req, res) {
   }
 });
 
-/* Update product*/
+/* Update Product */
 router.put(
   "/:id",
   upload.single("image"),
@@ -101,32 +106,34 @@ router.put(
 
 /* Add Product */
 router.post("/", upload.single("image"), async function (req, res) {
-  // try {
-  let Category = await category.findOne({ name: req.body.category });
-  if (!Category)
-    return res.status(400).send("category with this name does not exist");
-  console.log(req.file);
-  console.log(req.body);
-  let Tenant = await tenant.find({ "Tenant.Tenant_id": "req.body.Tenant_id" });
-  if (!Tenant) return res.status(400).send("Tenant not found");
-  let Product = new product();
-  Product.Tenant_id = req.body.Tenant_id;
-  Product.name = req.body.name;
-  Product.price = req.body.price;
-  Product.category = req.body.category;
-  Product.color = req.body.color;
-  Product.picture = req.file?.filename;
-  Product.stock = req.body.stock;
-  Product.id = req.body.id;
-  Product.description = req.body.description;
-  Product.date = req.body.date;
-  Product.time = req.body.time;
-  await Product.save();
+  try {
+    let Category = await category.findOne({ name: req.body.category });
+    if (!Category)
+      return res.status(400).send("Category with this name does not exist");
+    console.log(req.file);
+    console.log(req.body);
+    let Tenant = await tenant.find({ "Tenant.Tenant_id": "req.body.Tenant_id" });
+    if (!Tenant) return res.status(400).send("Tenant not found");
 
-  return res.send(Product);
-  /* } catch {
-    return res.status(400).send("unsuccessfull atempt");
-  }*/
+    let Product = new product();
+    Product.Tenant_id = req.body.Tenant_id;
+    Product.name = req.body.name;
+    Product.price = req.body.price;
+    Product.category = req.body.category;
+    Product.color = req.body.color;
+    Product.picture = req.file?.filename;
+    Product.stock = req.body.stock;
+    Product.id = req.body.id;
+    Product.description = req.body.description;
+    Product.date = req.body.date;
+    Product.time = req.body.time;
+
+    await Product.save();
+    return res.send(Product);
+  } catch (error) {
+    console.error("Error in / route:", error);
+    return res.status(400).send("Unsuccessful attempt: " + error.message);
+  }
 });
 
 /* Delete Product */

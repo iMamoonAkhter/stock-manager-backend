@@ -8,71 +8,83 @@ const { response } = require("express");
 
 /* Get All cart */
 router.get("/", async function (req, res) {
-  let Cart = await cart.find().populate("cartItems.product");
-  return res.send(Cart);
+  try {
+    let Cart = await cart.find().populate("cartItems.product");
+    return res.send(Cart);
+  } catch (error) {
+    return res.status(500).send("Internal Error!");
+    
+  }
 });
 
 /* Add to cart*/
 router.post("/addtocart/:id/:t_id", async function (req, res) {
-  var tenant = await cart.findOne ({tenant_id: req.params.t_id });
-//console.log(tenant)
-  if(tenant)
-  {
-  var User = await cart.findOne({ user: req.params.id ,tenant_id:req.params.t_id});
-  console.log({tenant:User})
-  if (User) {
-    const Product = req.body.cartItems.product;
-    const item = User.cartItems.find((c) => c.product == Product);
-    console.log({items:item})
-    if (item) {
-      cart.findOneAndUpdate(
-        { user: req.params.id, "cartItems.product": Product,tenant_id:req.params.t_id },
-        {
-          $set: {
-            "cartItems.$": {
-              ...req.body.cartItems,
-              quantity: item.quantity + req.body.cartItems.quantity,
+  try {
+    var tenant = await cart.findOne({ tenant_id: req.params.t_id });
+
+    if (tenant) {
+      var User = await cart.findOne({ user: req.params.id, tenant_id: req.params.t_id });
+      console.log({ tenant: User });
+
+      if (User) {
+        const Product = req.body.cartItems.product;
+        const item = User.cartItems.find((c) => c.product == Product);
+        console.log({ items: item });
+
+        if (item) {
+          const updatedCart = await cart.findOneAndUpdate(
+            { user: req.params.id, "cartItems.product": Product, tenant_id: req.params.t_id },
+            {
+              $set: {
+                "cartItems.$": {
+                  ...req.body.cartItems,
+                  quantity: item.quantity + req.body.cartItems.quantity,
+                },
+              },
             },
-          },
-        },
-        { new: true },
-        (err, doc) => {
-          if (err) {
+            { new: true }
+          );
+
+          if (!updatedCart) {
             return res.status(500).send("Something wrong when updating data!");
           }
-          return res.send("quantity updated successfully");
-        }
-      );
-    } else {
-      cart.findOneAndUpdate(
-        { user: req.params.id },
-        { $push: { cartItems: req.body.cartItems } },
-        { new: true },
-        (err, doc) => {
-          if (err) {
-            console.log("Something wrong when updating data!");
+
+          return res.send("Quantity updated successfully");
+        } else {
+          const updatedCart = await cart.findOneAndUpdate(
+            { user: req.params.id },
+            { $push: { cartItems: req.body.cartItems } },
+            { new: true }
+          );
+
+          if (!updatedCart) {
+            return res.status(500).send("Something wrong when updating data!");
           }
+
+          return res.send("Cart updated successfully");
         }
-      );
-      return res.send("cart updated successfully");
+      } else {
+        let Cart = new cart();
+        Cart.user = req.params.id;
+        Cart.tenant_id = req.params.t_id;
+        Cart.cartItems = [req.body.cartItems];
+
+        await Cart.save();
+        return res.json(Cart);
+      }
+    } else {
+      let Carts = new cart();
+      Carts.user = req.params.id;
+      Carts.tenant_id = req.params.t_id;
+      Carts.cartItems = [req.body.cartItems];
+
+      await Carts.save();
+      return res.json(Carts);
     }
-  } else {
-    let Cart = new cart();
-    (Cart.user = req.params.id),
-    (Cart.tenant_id = req.params.t_id), (Cart.cartItems = [req.body.cartItems]);
-
-    await Cart.save();
-    return res.json(Cart);
+  } catch (error) {
+    console.error("Error in /addtocart route:", error);
+    return res.status(500).send("Internal Server Error");
   }
-}
-else{
-
-  let Carts = new cart();
-    (Carts.user = req.params.id),
-    (Carts.tenant_id = req.params.t_id), (Carts.cartItems = [req.body.cartItems]);
-    await Carts.save();
-    return res.json(Carts);
-}
 });
 
 /* Get Single cart */

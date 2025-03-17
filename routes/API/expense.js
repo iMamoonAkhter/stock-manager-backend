@@ -7,9 +7,14 @@ var owner = require("../../middlewares/owner");
 
 /* Get All Expenses w.r.t tenant*/
 router.get("/tenant/:id", async function (req, res) {
-  let expenses = await expense.find({ tenant_id: req.params.id });
-
-  return res.send(expenses);
+  try {
+    let expenses = await expense.find({ tenant_id: req.params.id });
+  
+    return res.send(expenses);
+  } catch (error) {
+    return res.status(400).send("Invalid ID");
+    
+  }
 });
 
 /* Get Single Expense */
@@ -47,22 +52,22 @@ router.put("/:id", async function (req, res) {
 
 /* insert Expense */
 router.post("/:id", async function (req, res) {
-  //  try{
-  let Expense = new expense();
-  Expense.product_name = req.body.product_name;
-  Expense.id = req.body.id;
-  Expense.tenant_id = req.params.id;
-  Expense.travellingExpense = req.body.travellingExpense;
-  Expense.labourExpense = req.body.labourExpense;
-  Expense.description = req.body.description;
-  Expense.date = req.body.date;
-  Expense.time = req.body.time;
-  await Expense.save();
-  return res.send(Expense);
-  /*  }
-       catch{
-        return res.status(400).send('unsuccessfull atempt')
-       }*/
+  try {
+    let Expense = new expense();
+    Expense.product_name = req.body.product_name;
+    Expense.id = req.body.id;
+    Expense.tenant_id = req.params.id;
+    Expense.travellingExpense = req.body.travellingExpense;
+    Expense.labourExpense = req.body.labourExpense;
+    Expense.description = req.body.description;
+    Expense.date = req.body.date;
+    Expense.time = req.body.time;
+
+    await Expense.save(); // Save the expense to the database
+    return res.send(Expense); // Send the saved expense as a response
+  } catch (error) {
+    return res.status(400).send("Unsuccessful attempt: " + error.message); // Send a 400 status with the error message
+  }
 });
 
 /* Delete Expense */

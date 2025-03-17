@@ -8,53 +8,72 @@ const { product } = require("../../models/products");
 
 /* Get All Manualorders */
 router.get("/", async function (req, res) {
-  let orders = await order.find().populate("user_id").populate("items.product");
-
-  return res.send(orders);
+  try {
+    let orders = await manualOrder.find().populate("user_id").populate("items.product");
+  
+    return res.send(orders);
+  } catch (error) {
+    return res.status(500).send("Internal Error!");
+  }
 });
 
 /* Get Manual oders w.r.t tenant*/
 router.get("/tenant/:id", async function (req, res) {
-  let orders = await manualOrder
-    .find({ tenant_id: req.params.id })
-    .populate("items.product");
-
-  return res.send(orders);
+  try {
+    let orders = await manualOrder
+      .find({ tenant_id: req.params.id })
+      .populate("items.product");
+  
+    return res.send(orders);
+  } catch (error) {
+    return res.status(400).send("Invalid ID");
+    
+  }
 });
 
 /* Get Sales of Manual Order w.r.t tenant */
 router.get("/ManualOrderSales/:id", async function (req, res) {
-  let sales = await manualOrder
-    .find({ OrderStatus: "Completed", tenant_id: req.params.id })
-    .populate("items.product");
-  return res.send(sales);
+  try {
+    let sales = await manualOrder
+      .find({ OrderStatus: "Completed", tenant_id: req.params.id })
+      .populate("items.product");
+    return res.send(sales);
+  } catch (error) {
+    return res.status(400).send("Invalid ID");
+    
+  }
 });
 
 /* Place Manual Order */
 router.post("/ManualOrder/:id/", async function (req, res) {
-  let User = await tenant.findOne({ tenant_id: req.params.id });
-  if (!User)
-    return res.status(400).send("Tenant with given Id does not exists");
-  req.body.items.forEach(async (o) => {
-    await FindProduct(o.product);
-  });
-  async function FindProduct(ID) {
-    let Product = await product.findOne({ id: ID });
-    if (!Product)
-      return res.status(400).send("Product with given Id does not exists");
-    console.log(Product);
+  try {
+    let User = await tenant.findOne({ tenant_id: req.params.id });
+    if (!User)
+      return res.status(400).send("Tenant with given Id does not exists");
+    req.body.items.forEach(async (o) => {
+      await FindProduct(o.product);
+    });
+    async function FindProduct(ID) {
+      let Product = await product.findOne({ id: ID });
+      if (!Product)
+        return res.status(400).send("Product with given Id does not exists");
+      console.log(Product);
+    }
+    let Order = await manualOrder.insertMany(req.body);
+  
+    return res.send({
+      message: "Your order has been placed successfully",
+      Order,
+    });
+  } catch (error) {
+    return res.status(400).send("Invalid ID");
+    
   }
-  let Order = await manualOrder.insertMany(req.body);
-
-  return res.send({
-    message: "Your order has been placed successfully",
-    Order,
-  });
 });
 
 /* Deliver Manual Order */
 router.put("/:id", async function (req, res) {
-  // try {
+  try {
   manualOrder.findByIdAndUpdate(
     req.params.id,
     { $set: { OrderStatus: "Completed" } },
@@ -78,9 +97,9 @@ router.put("/:id", async function (req, res) {
   }
 
   return res.send("Order Status has been updated successfully");
-  /* } catch (err) {
+   } catch (err) {
     return res.status(400).send("Invalid ID");
-  }*/
+  }
 });
 
 module.exports = router;

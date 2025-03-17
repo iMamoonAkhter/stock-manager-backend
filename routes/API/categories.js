@@ -4,9 +4,13 @@ var { category } = require("../../models/categories");
 
 /* Get All categories w.r.t tenant*/
 router.get("/:id", async function (req, res) {
-  let Catogories = await category.find({ tenant_id: req.params.id });
-
-  return res.send(Catogories);
+  try {
+    let Catogories = await category.find({ tenant_id: req.params.id });
+  
+    return res.send(Catogories);
+  } catch (error) {
+    return res.status(400).send("Invalid ID");
+  }
 });
 
 /* Get Single Category */
@@ -40,15 +44,20 @@ router.put("/:id", async function (req, res) {
 
 /* insert Category */
 router.post("/:id", async function (req, res) {
-  let Categories = await category.findOne({ name: req.body.name });
-  if (Categories)
-    return res.status(400).send("category with this name already exist");
-  let Category = new category();
-  Category.id = req.body.id;
-  Category.name = req.body.name;
-  Category.tenant_id = req.params.id;
-  await Category.save();
-  return res.send(Category);
+  try {
+    let Categories = await category.findOne({ name: req.body.name });
+    if (Categories)
+      return res.status(400).send("category with this name already exist");
+    let Category = new category();
+    Category.id = req.body.id;
+    Category.name = req.body.name;
+    Category.tenant_id = req.params.id;
+    await Category.save();
+    return res.send(Category);
+  } catch (error) {
+    return res.status(400).send("Invalid ID");
+    
+  }
 });
 
 /* Delete Category */

@@ -4,63 +4,81 @@ var { order } = require("../../models/orders");
 const { user } = require("../../models/users");
 const { cart } = require("../../models/cart");
 const { product } = require("../../models/products");
+
 /* Get All orders */
 router.get("/", async function (req, res) {
-  let orders = await order.find().populate("user_id").populate("items.product");
-
-  return res.send(orders);
+  try {
+    let orders = await order.find().populate("user_id").populate("items.product");
+    return res.send(orders);
+  } catch (error) {
+    console.error("Error in / route:", error);
+    return res.status(500).send("Internal Server Error");
+  }
 });
 
-/* Get oders w.r.t tenant*/
+/* Get orders w.r.t tenant */
 router.get("/tenant/:id", async function (req, res) {
-  let orders = await order
-    .find({ tenant_id: req.params.id })
-    .populate("user_id")
-    .populate("items.product");
-
-  return res.send(orders);
+  try {
+    let orders = await order
+      .find({ tenant_id: req.params.id })
+      .populate("user_id")
+      .populate("items.product");
+    return res.send(orders);
+  } catch (error) {
+    console.error("Error in /tenant/:id route:", error);
+    return res.status(500).send("Internal Server Error");
+  }
 });
 
 /* Get Sales */
 router.get("/sales", async function (req, res) {
-  let sales = await order
-    .find({ OrderStatus: "Completed" })
-    .populate("user_id")
-    .populate("items.product");
+  try {
+    let sales = await order
+      .find({ OrderStatus: "Completed" })
+      .populate("user_id")
+      .populate("items.product");
 
-  /*let sales = await order.aggregate([
-   { $match: { OrderStatus: "Completed" } },
-   { $unwind: "$items" },
-    { $match: { OrderStatus: "Completed" } },
-    {
-     $lookup: {
-        from: "products",
-       localField: "items.product",
-       foreignField: "_id",
-       as: "Sales",
-     },
-   },
-
-    {
-      $group: {
-       _id: {
-         Product: "$Sales.name",
-         Price: "$Sales.price",
-       },
-       Quantity: { $sum: "$items.quantity" },
-   },
-   },
-  ]);*/
-  return res.send(sales);
+    /*let sales = await order.aggregate([
+      { $match: { OrderStatus: "Completed" } },
+      { $unwind: "$items" },
+      { $match: { OrderStatus: "Completed" } },
+      {
+        $lookup: {
+          from: "products",
+          localField: "items.product",
+          foreignField: "_id",
+          as: "Sales",
+        },
+      },
+      {
+        $group: {
+          _id: {
+            Product: "$Sales.name",
+            Price: "$Sales.price",
+          },
+          Quantity: { $sum: "$items.quantity" },
+        },
+      },
+    ]);*/
+    return res.send(sales);
+  } catch (error) {
+    console.error("Error in /sales route:", error);
+    return res.status(500).send("Internal Server Error");
+  }
 });
 
 /* Get Sales w.r.t tenant */
 router.get("/sales/:id", async function (req, res) {
-  let sales = await order
-    .find({ OrderStatus: "Completed", tenant_id: req.params.id })
-    .populate("user_id")
-    .populate("items.product");
-  return res.send(sales);
+  try {
+    let sales = await order
+      .find({ OrderStatus: "Completed", tenant_id: req.params.id })
+      .populate("user_id")
+      .populate("items.product");
+    return res.send(sales);
+  } catch (error) {
+    console.error("Error in /sales/:id route:", error);
+    return res.status(500).send("Internal Server Error");
+  }
 });
 
 /* Get Single Order */
@@ -80,17 +98,23 @@ router.get("/:id", async function (req, res) {
 
 /* Place Order */
 router.post("/placeOrder/:id", async function (req, res) {
-  let User = await user.findById(req.params.id);
-  if (!User) return res.status(400).send("user with given Id does not exists");
-  let Order = await order.insertMany(req.body);
+  try {
+    let User = await user.findById(req.params.id);
+    if (!User) return res.status(400).send("User with given Id does not exist");
 
-  let Users = await cart.findOneAndDelete({ user: req.params.id });
-  if (!Users) return res.status(400).send("user with given Id does not exists");
+    let Order = await order.insertMany(req.body);
 
-  return res.send({
-    message: "Your order has been placed successfully",
-    Order,
-  });
+    let Users = await cart.findOneAndDelete({ user: req.params.id });
+    if (!Users) return res.status(400).send("User with given Id does not exist");
+
+    return res.send({
+      message: "Your order has been placed successfully",
+      Order,
+    });
+  } catch (error) {
+    console.error("Error in /placeOrder/:id route:", error);
+    return res.status(500).send("Internal Server Error");
+  }
 });
 
 /* Deliver Order */
@@ -128,17 +152,18 @@ router.put("/:id", async function (req, res) {
     );
     let Order = await order.findById(req.params.id);
     if (!Order)
-      return res.status(400).send("user with given Id does not exists");
+      return res.status(400).send("Order with given Id does not exist");
+
     Order.items.forEach(async (o) => {
       await updateStock(o.product, o.quantity);
     });
+
     async function updateStock(id, quantity) {
       const Products = await product.findById(id);
-
       Products.stock -= quantity;
-
       await Products.save({ validateBeforeSave: false });
     }
+
     return res.send("Order Status has been updated successfully");
   } catch (err) {
     return res.status(400).send("Invalid ID");

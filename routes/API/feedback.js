@@ -6,9 +6,14 @@ var validateFeedback = require("../../middlewares/validateFeedback");
 
 /* Get All feedback */
 router.get("/", async function (req, res) {
-  let Feedback = await feedback.find();
-
-  return res.send(Feedback);
+  try {
+    let Feedback = await feedback.find();
+  
+    return res.send(Feedback);
+  } catch (error) {
+    return res.status(500).send("Internal Error!");
+    
+  }
 });
 
 /* Get Single Feedback */

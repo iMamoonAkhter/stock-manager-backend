@@ -32,35 +32,47 @@ const { user } = require("../../models/users");
 //   });
 
 router.post("/addTenant/:id", async function (req, res) {
-  var Admin = await tenant.findOne({ Admin: req.params.id });
-  if (Admin) {
-    const Tenants = req.body.Tenant.Tenant_id;
-    const ID = Admin.Tenant.find((t) => t.Tenant_id == Tenants);
-    if (ID) return res.status(400).send("Tenant Id already exists");
-    tenant.findOneAndUpdate(
-      { Admin: req.params.id },
-      { $push: { Tenant: req.body.Tenant } },
-      { new: true },
-      (err, doc) => {
-        if (err) {
-          console.log("Something wrong when updating data!");
-        }
-      }
-    );
-    return res.send("Tenant updated successfully");
-  } else {
-    let Tenant = new tenant();
-    (Tenant.Admin = req.params.id), (Tenant.Tenant = [req.body.Tenant]);
+  try {
+    var Admin = await tenant.findOne({ Admin: req.params.id });
+    if (Admin) {
+      const Tenants = req.body.Tenant.Tenant_id;
+      const ID = Admin.Tenant.find((t) => t.Tenant_id == Tenants);
+      if (ID) return res.status(400).send("Tenant Id already exists");
 
-    await Tenant.save();
-    return res.json(Tenant);
+      tenant.findOneAndUpdate(
+        { Admin: req.params.id },
+        { $push: { Tenant: req.body.Tenant } },
+        { new: true },
+        (err, doc) => {
+          if (err) {
+            console.log("Something wrong when updating data!");
+          }
+        }
+      );
+      return res.send("Tenant updated successfully");
+    } else {
+      let Tenant = new tenant();
+      Tenant.Admin = req.params.id;
+      Tenant.Tenant = [req.body.Tenant];
+
+      await Tenant.save();
+      return res.json(Tenant);
+    }
+  } catch (error) {
+    console.error("Error in /addTenant/:id route:", error);
+    return res.status(500).send("Internal Server Error");
   }
 });
 
-/* Get All Tenants w.r.t admin*/
+/* Get All Tenants w.r.t admin */
 router.get("/Admin/:id", async function (req, res) {
-  let Tenant = await tenant.find({ Admin: req.params.id }).populate("Admin");
-  return res.send(Tenant);
+  try {
+    let Tenant = await tenant.find({ Admin: req.params.id }).populate("Admin");
+    return res.send(Tenant);
+  } catch (error) {
+    console.error("Error in /Admin/:id route:", error);
+    return res.status(500).send("Internal Server Error");
+  }
 });
 
 /* Get Single Tenant */
@@ -129,15 +141,16 @@ router.delete("/:id/:ID", async function (req, res) {
 //   }
 // });
 
-/* Delete tenant*/
+/* Delete tenant */
 router.delete("/:id", async function (req, res) {
   try {
-    let Product = await tenant.findByIdAndDelete(req.params.id);
-    if (!Product)
-      return res.status(400).send("Tenant with given Id does not exists");
-    return res.send(Product);
+    let Tenant = await tenant.findByIdAndDelete(req.params.id);
+    if (!Tenant)
+      return res.status(400).send("Tenant with given Id does not exist");
+    return res.send(Tenant);
   } catch (err) {
     return res.status(400).send("Invalid ID");
   }
 });
+
 module.exports = router;
