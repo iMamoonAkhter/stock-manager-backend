@@ -1,41 +1,15 @@
-var express = require("express");
-var router = express.Router();
-var validateProduct = require("../../middlewares/validateProduct");
-var { product } = require("../../models/products");
-var { category } = require("../../models/categories");
-var auth = require("../../middlewares/auth");
-var owner = require("../../middlewares/owner");
-var multer = require("multer");
-
-const shortid = require("shortid");
+const express = require("express");
+const router = express.Router();
+const validateProduct = require("../../middlewares/validateProduct");
+const { product } = require("../../models/products");
+const { category } = require("../../models/categories");
+const auth = require("../../middlewares/auth");
+const owner = require("../../middlewares/owner");
 const { tenant } = require("../../models/tenants");
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "public/uploads/");
-  },
-  filename: function (req, file, cb) {
-    cb(null, shortid.generate() + "-" + file.originalname);
-  },
-});
-const fileFilter = (req, file, cb) => {
-  if (
-    file.mimetype === "image/jpeg" ||
-    file.mimetype === "image/jpg" ||
-    file.mimetype === "image/png"
-  ) {
-    cb(null, true);
-  } else {
-    cb(null, false);
-  }
-};
-var upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 1024 * 1024 * 5,
-  },
-  fileFilter: fileFilter,
-});
+// Import custom multer middleware and Cloudinary utility
+const {upload} = require("../../middlewares/multer.middlewares.js");
+const { uploadOnCloudinary } = require("../../utils/cloudinary");
 
 /* Get All Products */
 router.get("/", async function (req, res) {
@@ -84,12 +58,21 @@ router.put(
       let Product = await product.findById(req.params.id);
       if (!Product)
         return res.status(400).send("Product with given Id does not exists");
+
+      // Upload image to Cloudinary
+      if (req.file) {
+        const cloudinaryResponse = await uploadOnCloudinary(req.file.path);
+        if (!cloudinaryResponse) {
+          return res.status(500).send("Failed to upload image to Cloudinary");
+        }
+        Product.picture = cloudinaryResponse.url; // Save Cloudinary URL
+      }
+
       Product.Tenant_id = req.body.Tenant_id;
       Product.name = req.body.name;
       Product.price = req.body.price;
       Product.category = req.body.category;
       Product.color = req.body.color;
-      Product.picture = req.file?.filename;
       Product.stock = req.body.stock;
       Product.id = req.body.id;
       Product.description = req.body.description;
@@ -110,10 +93,19 @@ router.post("/", upload.single("image"), async function (req, res) {
     let Category = await category.findOne({ name: req.body.category });
     if (!Category)
       return res.status(400).send("Category with this name does not exist");
-    console.log(req.file);
-    console.log(req.body);
+
     let Tenant = await tenant.find({ "Tenant.Tenant_id": "req.body.Tenant_id" });
     if (!Tenant) return res.status(400).send("Tenant not found");
+
+    // Upload image to Cloudinary
+    let pictureUrl = null;
+    if (req.file) {
+      const cloudinaryResponse = await uploadOnCloudinary(req.file.path);
+      if (!cloudinaryResponse) {
+        return res.status(500).send("Failed to upload image to Cloudinary");
+      }
+      pictureUrl = cloudinaryResponse.url; // Save Cloudinary URL
+    }
 
     let Product = new product();
     Product.Tenant_id = req.body.Tenant_id;
@@ -121,7 +113,7 @@ router.post("/", upload.single("image"), async function (req, res) {
     Product.price = req.body.price;
     Product.category = req.body.category;
     Product.color = req.body.color;
-    Product.picture = req.file?.filename;
+    Product.picture = pictureUrl; // Use Cloudinary URL
     Product.stock = req.body.stock;
     Product.id = req.body.id;
     Product.description = req.body.description;
@@ -139,9 +131,19 @@ router.post("/", upload.single("image"), async function (req, res) {
 /* Delete Product */
 router.delete("/:id", async function (req, res) {
   try {
-    let Product = await product.findByIdAndDelete(req.params.id);
+    let Product = await product.findById(req.params.id);
     if (!Product)
       return res.status(400).send("Product with given Id does not exists");
+
+    // Extract public_id from Cloudinary URL
+    if (Product.picture) {
+      const publicId = Product.picture.split("/").pop().split(".")[0]; // Extract public_id from URL
+      await deleteOnCloudinary(publicId); // Delete image from Cloudinary
+    }
+
+    // Delete product from database
+    await product.findByIdAndDelete(req.params.id);
+
     return res.send(Product);
   } catch (err) {
     return res.status(400).send("Invalid ID");
