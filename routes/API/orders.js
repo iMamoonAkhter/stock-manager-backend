@@ -87,7 +87,7 @@ router.get("/:id", async function (req, res) {
     let Order = await order.findById(req.params.id);
     if (!Order)
       return res.status(400).send("Order with given Id does not exists");
-    console.log(Order);
+    //console.log(Order);
     return res.send(Order);
   } catch (err) {
     return res.status(400).send("Invalid ID");
@@ -126,7 +126,7 @@ router.post("/placeOrder/:id", async function (req, res) {
 //       { new: true },
 //       (err, doc) => {
 //         if (err) {
-//           console.log("Something wrong when updating data!");
+//           //console.log("Something wrong when updating data!");
 //         }
 //       }
 //     );
@@ -146,7 +146,7 @@ router.put("/:id", async function (req, res) {
       { new: true },
       (err, doc) => {
         if (err) {
-          console.log("Something wrong when updating data!");
+          //console.log("Something wrong when updating data!");
         }
       }
     );
@@ -167,6 +167,25 @@ router.put("/:id", async function (req, res) {
     return res.send("Order Status has been updated successfully");
   } catch (err) {
     return res.status(400).send("Invalid ID");
+  }
+});
+
+/* Delete Order */
+router.delete("/:id", async function (req, res) {
+  try {
+    const orderId = req.params.id;
+
+    // Find and delete the order
+    const deletedOrder = await order.findByIdAndDelete(orderId);
+
+    if (!deletedOrder) {
+      return res.status(404).send("Order with given Id does not exist");
+    }
+
+    return res.send("Order deleted successfully");
+  } catch (error) {
+    console.error("Error in /:id route:", error);
+    return res.status(500).send("Internal Server Error");
   }
 });
 

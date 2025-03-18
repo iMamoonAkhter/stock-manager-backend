@@ -4,7 +4,6 @@ var router = express.Router();
 let { cart } = require("../../models/cart");
 var auth = require("../../middlewares/auth");
 var owner = require("../../middlewares/owner");
-const { response } = require("express");
 
 /* Get All cart */
 router.get("/", async function (req, res) {
@@ -13,76 +12,82 @@ router.get("/", async function (req, res) {
     return res.send(Cart);
   } catch (error) {
     return res.status(500).send("Internal Error!");
-    
   }
 });
 
-/* Add to cart*/
+/* Add to cart */
 router.post("/addtocart/:id/:t_id", async function (req, res) {
   try {
-    var tenant = await cart.findOne({ tenant_id: req.params.t_id });
+    const { id, t_id } = req.params; // User ID and Tenant ID
+    const { product: productId, quantity } = req.body.cartItems; // Product ID and Quantity
 
-    if (tenant) {
-      var User = await cart.findOne({ user: req.params.id, tenant_id: req.params.t_id });
-      console.log({ tenant: User });
+    // Find the cart for the user and tenant
+    let userCart = await cart.findOne({ user: id, tenant_id: t_id });
 
-      if (User) {
-        const Product = req.body.cartItems.product;
-        const item = User.cartItems.find((c) => c.product == Product);
-        console.log({ items: item });
+    if (userCart) {
+      // Check if the product already exists in the cart
+      const existingProduct = userCart.cartItems.find(
+        (item) => item.product.toString() === productId
+      );
 
-        if (item) {
-          const updatedCart = await cart.findOneAndUpdate(
-            { user: req.params.id, "cartItems.product": Product, tenant_id: req.params.t_id },
-            {
-              $set: {
-                "cartItems.$": {
-                  ...req.body.cartItems,
-                  quantity: item.quantity + req.body.cartItems.quantity,
-                },
-              },
-            },
-            { new: true }
-          );
-
-          if (!updatedCart) {
-            return res.status(500).send("Something wrong when updating data!");
-          }
-
-          return res.send("Quantity updated successfully");
-        } else {
-          const updatedCart = await cart.findOneAndUpdate(
-            { user: req.params.id },
-            { $push: { cartItems: req.body.cartItems } },
-            { new: true }
-          );
-
-          if (!updatedCart) {
-            return res.status(500).send("Something wrong when updating data!");
-          }
-
-          return res.send("Cart updated successfully");
-        }
+      if (existingProduct) {
+        // If the product exists, update its quantity
+        existingProduct.quantity += quantity;
       } else {
-        let Cart = new cart();
-        Cart.user = req.params.id;
-        Cart.tenant_id = req.params.t_id;
-        Cart.cartItems = [req.body.cartItems];
-
-        await Cart.save();
-        return res.json(Cart);
+        // If the product does not exist, add it to the cart
+        userCart.cartItems.push(req.body.cartItems);
       }
-    } else {
-      let Carts = new cart();
-      Carts.user = req.params.id;
-      Carts.tenant_id = req.params.t_id;
-      Carts.cartItems = [req.body.cartItems];
 
-      await Carts.save();
-      return res.json(Carts);
+      // Save the updated cart
+      await userCart.save();
+      return res.send("Cart updated successfully");
+    } else {
+      // If no cart exists, create a new one
+      let newCart = new cart({
+        user: id,
+        tenant_id: t_id,
+        cartItems: [req.body.cartItems],
+      });
+
+      await newCart.save();
+      return res.json(newCart);
     }
   } catch (error) {
     console.error("Error in /addtocart route:", error);
+    return res.status(500).send("Internal Server Error");
+  }
+});
+
+/* Update quantity of an item in the cart */
+router.put("/updatequantity/:id/:productId", async function (req, res) {
+  try {
+    const { id, productId } = req.params; // User ID and Product ID
+    const { quantity } = req.body; // New quantity
+
+    // Find the cart for the user
+    let userCart = await cart.findOne({ user: id });
+
+    if (!userCart) {
+      return res.status(404).send("Cart not found");
+    }
+
+    // Find the product in the cart
+    const productIndex = userCart.cartItems.findIndex(
+      (item) => item.product.toString() === productId
+    );
+
+    if (productIndex === -1) {
+      return res.status(404).send("Product not found in cart");
+    }
+
+    // Update the quantity
+    userCart.cartItems[productIndex].quantity = quantity;
+
+    // Save the updated cart
+    await userCart.save();
+    return res.send("Quantity updated successfully");
+  } catch (error) {
+    console.error("Error in /updatequantity route:", error);
     return res.status(500).send("Internal Server Error");
   }
 });
@@ -95,7 +100,7 @@ router.get("/:id", async function (req, res) {
       .populate("cartItems.product");
     if (!Cart)
       return res.status(400).send("Cart with given Id does not exist");
-    console.log(Cart);
+    //console.log(Cart);
     return res.send(Cart);
   } catch (err) {
     return res.status(400).send("Invalid ID");
@@ -103,40 +108,40 @@ router.get("/:id", async function (req, res) {
 });
 
 /* Delete single item in cart */
-router.delete("/:id/:ID", async function (req, res) {
+router.delete("/:id/:productId", async function (req, res) {
   try {
-    var User = await cart.findOne({ user: req.params.id });
-    if (!User) return res.status(400).send("somethin went wrong");
+    const { id, productId } = req.params;
 
-    cart.findOneAndUpdate(
-      { user: req.params.id },
-      {
-        $pull: {
-          cartItems: { ...req.body.cartItems, product: req.params.ID },
-        },
-      },
-      { new: true },
-      (err, doc) => {
-        if (err) {
-          return res.status(500).send("Something wrong when updating data!");
-        }
-        return res.send("quantity updated successfully");
-      }
+    // Find the cart for the user
+    let userCart = await cart.findOne({ user: id });
+
+    if (!userCart) {
+      return res.status(404).send("Cart not found");
+    }
+
+    // Remove the product from the cart
+    userCart.cartItems = userCart.cartItems.filter(
+      (item) => item.product.toString() !== productId
     );
+
+    // Save the updated cart
+    await userCart.save();
+    return res.send("Item removed successfully");
   } catch (err) {
     return res.status(400).send("Invalid ID");
   }
 });
 
-/* Delete cart*/
+/* Delete cart */
 router.delete("/:id", async function (req, res) {
   try {
-    let Product = await product.findByIdAndDelete(req.params.id);
-    if (!Product)
-      return res.status(400).send("Product with given Id does not exists");
-    return res.send(Product);
+    let Cart = await cart.findByIdAndDelete(req.params.id);
+    if (!Cart)
+      return res.status(400).send("Cart with given Id does not exist");
+    return res.send(Cart);
   } catch (err) {
     return res.status(400).send("Invalid ID");
   }
 });
+
 module.exports = router;

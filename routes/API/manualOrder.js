@@ -9,7 +9,7 @@ const { product } = require("../../models/products");
 /* Get All Manualorders */
 router.get("/", async function (req, res) {
   try {
-    let orders = await manualOrder.find().populate("user_id").populate("items.product");
+    let orders = await manualOrder.find();
   
     return res.send(orders);
   } catch (error) {
@@ -57,7 +57,7 @@ router.post("/ManualOrder/:id/", async function (req, res) {
       let Product = await product.findOne({ id: ID });
       if (!Product)
         return res.status(400).send("Product with given Id does not exists");
-      console.log(Product);
+      //console.log(Product);
     }
     let Order = await manualOrder.insertMany(req.body);
   
@@ -80,7 +80,7 @@ router.put("/:id", async function (req, res) {
     { new: true },
     (err, doc) => {
       if (err) {
-        console.log("Something wrong when updating data!");
+        //console.log("Something wrong when updating data!");
       }
     }
   );
@@ -93,7 +93,7 @@ router.put("/:id", async function (req, res) {
     let Product = await product.findOne({ id: ID });
     Product.stock -= quantity;
     await Product.save({ validateBeforeSave: false });
-    console.log(Product);
+    //console.log(Product);
   }
 
   return res.send("Order Status has been updated successfully");

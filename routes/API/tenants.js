@@ -16,7 +16,7 @@ const { user } = require("../../models/users");
 //           { new: true },
 //           (err, doc) => {
 //             if (err) {
-//               console.log("Something wrong when updating data!");
+//               //console.log("Something wrong when updating data!");
 //             }
 //           }
 //         );
@@ -45,7 +45,7 @@ router.post("/addTenant/:id", async function (req, res) {
         { new: true },
         (err, doc) => {
           if (err) {
-            console.log("Something wrong when updating data!");
+            //console.log("Something wrong when updating data!");
           }
         }
       );
@@ -81,7 +81,7 @@ router.get("/:id", async function (req, res) {
     let Tenant = await tenant.findOne({ user: req.params.id }).populate("user");
     if (!Tenant)
       return res.status(400).send("Tenant with given Id does not exist");
-    console.log(Tenant);
+    //console.log(Tenant);
     return res.send(Tenant);
   } catch (err) {
     return res.status(400).send("Invalid ID");

@@ -68,7 +68,7 @@ router.post("/login", async (req, res) => {
 router.post("/register", validateadmin, async (req, res) => {
   try {
     const { firstname, lastname, username, email, password, confirmpassword, address, contact } = req.body;
-    console.log("Admin: ",req.body)
+    //console.log("Admin: ",req.body)
     // Check if admin already exists
     const Admin = await admin.findOne({ email });
     if (Admin) {

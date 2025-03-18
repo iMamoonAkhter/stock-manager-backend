@@ -28,7 +28,7 @@ router.get("/:id", async function (req, res) {
     let Product = await product.findById(req.params.id);
     if (!Product)
       return res.status(400).send("Product with given Id does not exists");
-    console.log(Product);
+    //console.log(Product);
     return res.send(Product);
   } catch (err) {
     return res.status(400).send("Invalid ID");
@@ -41,7 +41,7 @@ router.get("/tenant/:id", async function (req, res) {
     let Product = await product.find({ Tenant_id: req.params.id });
     if (!Product)
       return res.status(400).send("Product with given Id does not exists");
-    console.log(Product);
+    //console.log(Product);
     return res.send(Product);
   } catch (err) {
     return res.status(400).send("Invalid ID");

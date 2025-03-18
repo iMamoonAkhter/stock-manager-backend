@@ -23,7 +23,7 @@ router.get("/:id", async function (req, res) {
     let Expense = await expense.findById(req.params.id);
     if (!Expense)
       return res.status(400).send("Expense with given Id does not exists");
-    console.log(Expense);
+    //console.log(Expense);
     return res.send(Expense);
   } catch (err) {
     return res.status(400).send("Invalid ID");

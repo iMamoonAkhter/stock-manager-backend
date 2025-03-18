@@ -15,7 +15,7 @@ const nodemailer = require('nodemailer');
 /* Get All Users */
 router.get("/", async function (req, res) {
   try {
-    let User = await user.find();
+    let User = await user.find().select("-password");
     return res.send(User);
   } catch (error) {
     console.error("Error in / route:", error);
@@ -120,8 +120,7 @@ router.post("/register", validateusers, async (req, res) => {
       city,
       zipcode,
     };
-    console.log("OTP: ", OTP);
-    console.log(otpData[OTP]);
+    
 
     // Send OTP via email
     await sendEmailOTP(email, OTP);
@@ -139,8 +138,8 @@ router.post("/register", validateusers, async (req, res) => {
 router.post("/ActivateAccount", async (req, res) => {
   try {
     const { otp } = req.body;
-    console.log(req.body);
-    console.log("OTP: ", otp);
+    //console.log(req.body);
+    //console.log("OTP: ", otp);
 
     // Check if OTP data exists
     if (!otpData[otp]) {

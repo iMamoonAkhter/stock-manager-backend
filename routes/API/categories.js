@@ -19,7 +19,7 @@ router.get("/tenant/:id", async function (req, res) {
     let Category = await category.findById(req.params.id);
     if (!Category)
       return res.status(400).send("Category with given Id does not exists");
-    console.log(Category);
+    //console.log(Category);
     return res.send(Category);
   } catch (err) {
     return res.status(400).send("Invalid ID");

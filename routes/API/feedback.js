@@ -22,7 +22,7 @@ router.get("/:id", async function (req, res) {
     let Feedback = await feedback.findById(req.params.id);
     if (!Feedback)
       return res.status(400).send("Feedback with given Id does not exists");
-    console.log(Feedback);
+    //console.log(Feedback);
     return res.send(Feedback);
   } catch (err) {
     return res.status(400).send("Invalid ID");
@@ -48,10 +48,10 @@ router.post("/:id", validateFeedback, async function (req, res) {
   try {
     var id = await user.findOne({ _id: req.params.id });
     if (!id) return res.status(400).send("user not found");
-    console.log(id.email);
+    //console.log(id.email);
     var Email = await user.findOne({ email: req.body.email });
     if (!Email) return res.status(400).send("Email not found");
-    console.log(Email.email);
+    //console.log(Email.email);
     if (id.email == Email.email) {
       let Feedback = new feedback();
       Feedback.email = req.body.email;
