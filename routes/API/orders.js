@@ -97,13 +97,25 @@ router.get("/:id", async function (req, res) {
 /* Update Order */
 
 /* Place Order */
+/* Place Order */
 router.post("/placeOrder/:id", async function (req, res) {
   try {
     let User = await user.findById(req.params.id);
     if (!User) return res.status(400).send("User with given Id does not exist");
 
-    let Order = await order.insertMany(req.body);
+    // Extract tenant_id from the first product in the cart
+    const tenant_id = req.body.items[0].tenant_id;
 
+    // Add tenant_id to the order payload
+    const orderPayload = {
+      ...req.body,
+      tenant_id: tenant_id,
+    };
+
+    // Create the order
+    let Order = await order.insertMany(orderPayload);
+
+    // Clear the user's cart
     let Users = await cart.findOneAndDelete({ user: req.params.id });
     if (!Users) return res.status(400).send("User with given Id does not exist");
 
