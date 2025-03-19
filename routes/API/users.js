@@ -47,7 +47,6 @@ router.post("/login", async (req, res) => {
 
     return res.json({ message: "Login Successful", token, users });
   } catch (err) {
-    console.error("Error in /login route:", err);
     return res.status(400).json({ message: "Login Failed", error: err });
   }
 });
@@ -260,8 +259,8 @@ router.put("/forgetPassword", async (req, res) => {
 // Reset Password //
 router.put("/resetPassword", async (req, res) => {
   try {
-    const { OTP, newPass } = req.body;
-
+    const { resetLink, newPass } = req.body;
+    OTP = resetLink;
     // Check if OTP data exists
     if (!otpData[OTP]) {
       return res.status(400).json({ message: "Invalid OTP or OTP not sent yet" });
